@@ -1,0 +1,80 @@
+{
+    "art": {
+      "image_dir": "/home/rb074/Downloads/ArT/icdar2019_art_images_final",
+      "json_dir": "/home/rb074/Downloads/ArT/ocr-result-final",
+      "output_dir": "art_lmdb",
+      "json_type": "scene_text"
+    },
+    "totaltext_test": {
+      "image_dir": "/home/rb074/Downloads/totaltext/images/test_images_rotate",
+      "json_dir": "/home/rb074/Downloads/totaltext/ocr-result-final/test_images_rotate",
+      "output_dir": "totaltext_test_lmdb",
+      "json_type": "scene_text"
+    },
+    "totaltext_train": {
+      "image_dir": "/home/rb074/Downloads/totaltext/images/train_images_rotate",
+      "json_dir": "/home/rb074/Downloads/totaltext/ocr-result-final/train_images_rotate",
+      "output_dir": "totaltext_train_lmdb",
+      "json_type": "scene_text"
+    },
+    "cord": {
+      "image_dir": "/media/rb074/19290f91-25f7-40cc-8ad4-7746dd832baa/Layout-Instruction-Data/LayoutLLM_data/eval_data/images/CORD",
+      "json_dir": "/media/rb074/19290f91-25f7-40cc-8ad4-7746dd832baa/Layout-Instruction-Data/LayoutLLM_data/eval_data/ocr_results/CORD",
+      "output_dir": "cord_lmdb",
+      "json_type": "layoutllm"
+    },
+    "sroie": {
+      "image_dir": "/media/rb074/19290f91-25f7-40cc-8ad4-7746dd832baa/Layout-Instruction-Data/LayoutLLM_data/eval_data/images/FUNSD",
+      "json_dir": "/media/rb074/19290f91-25f7-40cc-8ad4-7746dd832baa/Layout-Instruction-Data/LayoutLLM_data/eval_data/ocr_results/FUNSD",
+      "output_dir": "sroie_lmdb",
+      "json_type": "layoutllm"
+    },
+    "funsd": {
+      "image_dir": "/media/rb074/19290f91-25f7-40cc-8ad4-7746dd832baa/Layout-Instruction-Data/LayoutLLM_data/eval_data/images/SROIE",
+      "json_dir": "/media/rb074/19290f91-25f7-40cc-8ad4-7746dd832baa/Layout-Instruction-Data/LayoutLLM_data/eval_data/ocr_results/SROIE",
+      "output_dir": "funsd_lmdb",
+      "json_type": "layoutllm"
+    },
+    "docile": {
+      "image_dir": "/media/rb074/19290f91-25f7-40cc-8ad4-7746dd832baa/Layout-Instruction-Data/LayoutLLM_data/pretrain_data/images/DOCILE",
+      "json_dir": "/media/rb074/19290f91-25f7-40cc-8ad4-7746dd832baa/Layout-Instruction-Data/LayoutLLM_data/pretrain_data/ocr_results/DOCILE",
+      "output_dir": "docile_lmdb",
+      "json_type": "layoutllm"
+    },
+    "rvl_cdip": {
+      "image_dir": "/media/rb074/19290f91-25f7-40cc-8ad4-7746dd832baa/Layout-Instruction-Data/LayoutLLM_data/pretrain_data/images/RVL-CDIP",
+      "json_dir": "/media/rb074/19290f91-25f7-40cc-8ad4-7746dd832baa/Layout-Instruction-Data/LayoutLLM_data/pretrain_data/ocr_results/RVL-CDIP",
+      "output_dir": "rvl_cdip_lmdb",
+      "json_type": "layoutllm"
+    },
+    "fetaqa": {
+      "image_dir": "/media/rb074/19290f91-25f7-40cc-8ad4-7746dd832baa/Layout-Instruction-Data/LayoutLLM_data/sft_data/images/FETAQA",
+      "json_dir": "/media/rb074/19290f91-25f7-40cc-8ad4-7746dd832baa/Layout-Instruction-Data/LayoutLLM_data/sft_data/ocr_results/FETAQA",
+      "output_dir": "fetaqa_lmdb",
+      "json_type": "layoutllm"
+    },
+    "generate_html_doc": {
+      "image_dir": "/media/rb074/19290f91-25f7-40cc-8ad4-7746dd832baa/Layout-Instruction-Data/LayoutLLM_data/sft_data/images/generate_html_doc",
+      "json_dir": "/media/rb074/19290f91-25f7-40cc-8ad4-7746dd832baa/Layout-Instruction-Data/LayoutLLM_data/sft_data/ocr_results/generate_html_doc",
+      "output_dir": "generate_html_doc_lmdb",
+      "json_type": "layoutllm"
+    },
+    "publaynet": {
+      "image_dir": "/media/rb074/19290f91-25f7-40cc-8ad4-7746dd832baa/Layout-Instruction-Data/LayoutLLM_data/sft_data/images/PubLayNet",
+      "json_dir": "/media/rb074/19290f91-25f7-40cc-8ad4-7746dd832baa/Layout-Instruction-Data/LayoutLLM_data/sft_data/ocr_results/PubLayNet",
+      "output_dir": "publaynet_lmdb",
+      "json_type": "layoutllm"
+    },
+    "rvl_cdip_sft": {
+      "image_dir": "/media/rb074/19290f91-25f7-40cc-8ad4-7746dd832baa/Layout-Instruction-Data/LayoutLLM_data/sft_data/images/RVL-CDIP",
+      "json_dir": "/media/rb074/19290f91-25f7-40cc-8ad4-7746dd832baa/Layout-Instruction-Data/LayoutLLM_data/sft_data/ocr_results/RVL-CDIP",
+      "output_dir": "rvl_cdip_sft_lmdb",
+      "json_type": "layoutllm"
+    },
+    "custom_dataset": {
+      "image_dir": "data/identity",
+      "json_dir": "data/identity",
+      "output_dir": "identity_lmdb",
+      "json_type": "scene_text"
+    }
+  }

@@ -1,0 +1,3 @@
+# dataset
+dataset_info: "/home/rb074/Desktop/demo/scripts/llm_lmdb/data/dataset_info.json"
+dataset: custom_dataset
