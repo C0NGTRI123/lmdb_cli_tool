@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Literal, Optional, Union, List
 
+
 @dataclass
 class ReadArguments:
     r"""
@@ -16,5 +17,3 @@ class ReadArguments:
         default=False,
         metadata={"help": "Whether to visualize the images"},
     )
-
-    

@@ -7,39 +7,50 @@ from typing import List, Tuple, Dict, Any, Union
 
 import lmdb
 from PIL import Image
+from PIL import ImageFile
 import psutil
 from loguru import logger
 
-from utils.utils import bytes2str, pil2bytes, str2bytes, bytes2pil
-from base.lmdb_base import LMDBBaseReader, LMDBBaseWriter, LMDBBaseRecovery
+from lmdb_cli_tool.utils.utils import bytes2str, pil2bytes, str2bytes, bytes2pil
+from lmdb_cli_tool.base.lmdb_base import LMDBBaseReader, LMDBBaseWriter, LMDBBaseRecovery
+
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 
 class LMDBWriter(LMDBBaseWriter):
     def __init__(self, output_path: str, map_size: int = 1099511627776, num_workers: int = None, resume=False):
         """
         Initialize LMDB Writer
-        
+
         :param output_path: Path for storing LMDB database
-        :param map_size: Maximum size of LMDB environment (defaults to 10% of available memory)
+        :param map_size: Maximum size of LMDB environment
         :param num_workers: Number of processing workers
         :param resume: Resume writing from existing counter
         """
         self.output_path = output_path
-
+        
         # Dynamically set map_size based on available system memory
         if map_size is None:
             total_memory = psutil.virtual_memory().total
             map_size = int(total_memory * 0.1)
         self.map_size = map_size
-
+        
         self.num_workers = num_workers or max(1, mp.cpu_count() - 1)
         os.makedirs(output_path, exist_ok=True)
-
-        if not resume and os.path.exists(os.path.join(output_path, "data.mdb")):
-            logger.info("Clearing existing database...")
-            os.remove(os.path.join(output_path, "data.mdb"))
-            os.remove(os.path.join(output_path, "lock.mdb"))
-            os.remove(os.path.join(output_path, "lmdb.lst"))
+        
+        # Check if database exists
+        database_exists = all(
+            os.path.exists(os.path.join(output_path, file))
+            for file in ["data.mdb", "lock.mdb", "lmdb.lst"]
+        )
+        
+        if database_exists and not resume:
+            logger.info(f"Database already exists at {output_path}, skipping...")
+            self.skip_processing = True
+            self.counter = 0
+            return
+        
+        self.skip_processing = False
         
         # Initialize LMDB environment
         self.env = lmdb.open(
@@ -49,19 +60,18 @@ class LMDBWriter(LMDBBaseWriter):
             sync=False
         )
         
+        # Set counter and metadata
         with self.env.begin(write=True) as txn:
-            if resume:
-                # Load existing counter and metadata
-                self.counter = int(txn.get(b"__counter__", b"0"))
+            if resume and database_exists:
+                counter_bytes = txn.get(b"__counter__")
+                self.counter = int(counter_bytes) if counter_bytes is not None else 0
                 logger.info(f"Resuming from counter {self.counter}")
             else:
-                # Initialize new database
                 self.counter = 0
-                # Set initial metadata
                 txn.put(b"__counter__", b"0")
-
+        
         self.file_list_path = os.path.join(output_path, "lmdb.lst")
-
+    
     def create_dataset(self, datasets: List[Tuple[str, str, str]], batch_size: int = 1000):
         """
         Create LMDB dataset using multiprocessing
@@ -69,6 +79,9 @@ class LMDBWriter(LMDBBaseWriter):
         :param datasets: List of (image_path, label, type) tuples
         :param batch_size: Number of images to process in each batch
         """
+        if hasattr(self, 'skip_processing') and self.skip_processing:
+            return
+        
         # Create queues
         input_queue = Queue()
         output_queue = Queue()
@@ -127,10 +140,10 @@ class LMDBWriter(LMDBBaseWriter):
                     # Write processed image to cache
                     cache[f"image-{self.counter:09d}".encode()] = processed_image['image_bin']
                     cache[f"label-{self.counter:09d}".encode()] = str2bytes(processed_image['label'])
-
+                    
                     with open(self.file_list_path, "a") as f:
                         f.write("{}\n".format(processed_image['image_path']))
-
+                    
                     self.counter += 1
                     processed_count += 1
                     
@@ -162,8 +175,7 @@ class LMDBWriter(LMDBBaseWriter):
             self.close()
         
         logger.info(f"Total images processed: {processed_count}")
-        
-
+    
     def _write_cache(self, cache: Dict[bytes, bytes]):
         """Write cache to LMDB with metadata"""
         try:
@@ -175,7 +187,7 @@ class LMDBWriter(LMDBBaseWriter):
         except Exception as e:
             logger.error(f"Error writing cache: {e}")
             raise
-
+    
     def close(self):
         """Close LMDB environment"""
         try:
@@ -214,28 +226,29 @@ class LMDBReader(LMDBBaseReader):
             # Only calculate cumulative lengths for multiple DBs
             if len(self.paths) > 1:
                 self.cumulative_lengths = [sum(self.lengths[:i]) for i in range(len(self.lengths) + 1)]
-            
+        
         except Exception as e:
             # Clean up on initialization failure
             self.close()
             raise e
-
+    
     def __len__(self):
         return self.total_length
-
+    
     def __getitem__(self, idx):
         if idx < 0 or idx >= self.total_length:
             raise IndexError(f"Index {idx} out of range for total length {self.total_length}")
-
+        
         if len(self.envs) == 1:
             env = self.envs[0]
             local_idx = idx
         else:
             lmdb_index = next(i for i in range(len(self.cumulative_lengths) - 1)
-                            if self.cumulative_lengths[i] <= idx < self.cumulative_lengths[i + 1])
+                              if self.cumulative_lengths[i] <= idx < self.cumulative_lengths[i + 1]
+                              )
             env = self.envs[lmdb_index]
             local_idx = idx - self.cumulative_lengths[lmdb_index]
-
+        
         with env.begin(write=False) as txn:
             image_key = f"image-{local_idx:09d}".encode()
             label_key = f"label-{local_idx:09d}".encode()
@@ -245,12 +258,12 @@ class LMDBReader(LMDBBaseReader):
             
             if image_bin is None:
                 raise KeyError(f"Image not found for index {idx}")
-
+            
             return (
                 bytes2pil(image_bin),
                 bytes2str(label_bin),
             )
-
+    
     def close(self):
         """Close all LMDB environments"""
         for env in self.envs:
@@ -259,16 +272,16 @@ class LMDBReader(LMDBBaseReader):
             except Exception as e:
                 logger.error(f"Error closing LMDB environment: {e}")
         self.envs = []
-
+    
     def __enter__(self):
         return self
-
+    
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
 
 
 class LMDBRecovery(LMDBBaseRecovery):
-    def __init__(self, lmdb_path: str, readonly: bool = True):
+    def __init__(self, lmdb_path: str, readonly: bool = True, lock: bool = False):
         """
         Initialize LMDB reader for single or multiple LMDB paths
         
@@ -284,18 +297,18 @@ class LMDBRecovery(LMDBBaseRecovery):
             os.makedirs(self.output_path, exist_ok=True)
         if not os.path.exists(lmdb_path):
             raise FileNotFoundError(f"LMDB path not found: {lmdb_path}")
-        self.env = lmdb.open(lmdb_path, readonly=True)
+        self.env = lmdb.open(lmdb_path, readonly=readonly, lock=lock)
         with self.env.begin(write=False) as txn:
             self.counter = int(txn.get(b"__counter__", b"0"))
         self.list_file_path = os.path.join(lmdb_path, "lmdb.lst")
         self.file_list = self._load_list_file()
-
+    
     def _load_list_file(self):
         """Load list file for image paths"""
         with open(self.list_file_path, "r") as f:
             file_list = f.read().splitlines()
         return file_list
-
+    
     def recover_images(self):
         """Recover images from LMDB database base on self.file_list"""
         for idx, image_path in enumerate(self.file_list):
@@ -309,4 +322,3 @@ class LMDBRecovery(LMDBBaseRecovery):
                     f.write(image_bin)
             logger.info(f"Recovered image {idx}/{self.counter}")
         logger.info(f"Total images recovered: {len(self.file_list)}")
-        

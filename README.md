@@ -12,7 +12,6 @@ A Python tool for efficiently managing large datasets using LMDB (Lightning Memo
 ## Installation
 
 ```sh
-cd llm_lmdb
 pip install -e .
 ```
 

@@ -4,3 +4,4 @@ loguru
 pillow
 numpy
 pandas
+pyyaml

@@ -6,11 +6,11 @@ import time
 
 from loguru import logger
 
-from lmdb_main import LMDBReader, LMDBWriter, LMDBRecovery
-from data.dataset import SceneText, LayoutLLM
-from utils.constant import VERSION
-from utils.config_utils import load_config
-from utils.file_utils import json_reader
+from lmdb_cli_tool.lmdb_main import LMDBWriter, LMDBRecovery
+from lmdb_cli_tool.data.dataset import SceneText, LayoutLLM, AWSExtractText, AzureExtractText
+from lmdb_cli_tool.utils.constant import VERSION
+from lmdb_cli_tool.utils.config_utils import load_config
+from lmdb_cli_tool.utils.file_utils import json_reader
 
 
 def process_and_write_lmdb(data_object, output_path: str, resume: bool = False):
@@ -21,15 +21,16 @@ def process_and_write_lmdb(data_object, output_path: str, resume: bool = False):
     writer.create_dataset(datasets)
     end_time = time.time()
     logger.info(f"Dataset writing completed in {end_time - start_time:.2f} seconds")
-    
+
 
 def run_writer():
     parser = argparse.ArgumentParser(description='LMDB Dataset Writer')
-    parser.add_argument('--config', type=str, required=True, 
-                       help='Path to YAML config file')
+    parser.add_argument('--config', type=str, required=True,
+                        help='Path to YAML config file'
+                        )
     
     args = parser.parse_args()
-
+    
     # Load and validate config
     if not Path(args.config).exists():
         raise FileNotFoundError(f"Config file not found: {args.config}")
@@ -46,7 +47,7 @@ def run_writer():
         json_dir = dataset_info[name].get('json_dir')
         output = dataset_info[name].get('output_dir')
         json_type = dataset_info[name].get('json_type')
-
+        
         if not all([image_dir, json_dir, output]):
             raise ValueError("Missing required parameters in config file")
         
@@ -55,21 +56,25 @@ def run_writer():
         
         if not Path(json_dir).exists():
             raise FileNotFoundError(f"JSON directory not found: {json_dir}")
-
+        
         try:
             # Initialize appropriate dataset object
             if json_type == 'scene_text':
                 data_object = SceneText(image_dir, json_dir)
             elif json_type == 'layoutllm':
                 data_object = LayoutLLM(image_dir, json_dir)
+            elif json_type == 'azure':
+                data_object = AzureExtractText(image_dir, json_dir)
+            elif json_type == "aws":
+                data_object = AWSExtractText(image_dir, json_dir)
             else:
                 raise ValueError(f"Unsupported dataset type: {json_type}")
-
+            
             # Process and write
             logger.info(f"Writing dataset to {output}")
             process_and_write_lmdb(data_object, output)
             logger.info("Dataset writing completed successfully")
-
+        
         except Exception as e:
             logger.error(f"Error writing dataset: {e}")
             raise
@@ -82,15 +87,16 @@ def run_reader():
 def run_recovery():
     parser = argparse.ArgumentParser(description='LMDB Dataset Recovery')
     parser.add_argument('--config', type=str, required=True,
-                        help='Path to YAML config file')
+                        help='Path to YAML config file'
+                        )
     args = parser.parse_args()
-
+    
     # Load and validate config
     if not Path(args.config).exists():
         raise FileNotFoundError(f"Config file not found: {args.config}")
     
     config = load_config(args.config)
-
+    
     dataset = config.get('dataset')
     dataset_lst = [name.strip() for name in dataset.split(',')]
     dataset_info = json_reader(config.get('dataset_info'))
@@ -108,16 +114,19 @@ def run_recovery():
             logger.error(f"Error recovering dataset: {e}")
             raise
 
+
 USAGE = (
     "-" * 90
     + "\n"
     + "| Usage:                                                                                 |\n"
     + "|   lmdb-cli write --config <path>    Write data to LMDB database                        |\n"
+    + "|   lmdb-cli read --config <path>     Read data from LMDB database                       |\n"
     + "|   lmdb-cli recovery --config <path> Recover data from LMDB database                    |\n"
     + "|   lmdb-cli version                 Show version information                            |\n"
     + "|   lmdb-cli help                    Show this help message                              |\n"
     + "-" * 90
 )
+
 
 def create_welcome_message(version: str) -> str:
     width = 58
@@ -126,9 +135,10 @@ def create_welcome_message(version: str) -> str:
     
     return (
         "-" * width + "\n"
-        f"|{' ' * padding}{message}{' ' * (width - padding - len(message) - 2)}|\n"
+                      f"|{' ' * padding}{message}{' ' * (width - padding - len(message) - 2)}|\n"
         + "-" * width
     )
+
 
 @unique
 class Command(str, Enum):
@@ -155,6 +165,6 @@ def main():
     else:
         raise NotImplementedError(f"Unknown command: {command}.")
 
+
 if __name__ == "__main__":
     main()
-
